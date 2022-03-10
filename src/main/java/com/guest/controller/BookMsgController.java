@@ -126,11 +126,13 @@ public class BookMsgController {
             BookMsg bookMsg = bookMsgService.getById(bookMsgId);
             //获取当前的预定信息
             List<BookMsg> bookMsgs = bookMsgService.getBookMsgByTime(bookMsg.getFromTime(),bookMsg.getToTime());
-            //获取当前正在入住的信息
+            //获取用户预定时间内 房间的入住信息
             List<CheckIn> checkIns = checkInService.getValidCheckIns(bookMsg.getFromTime(),bookMsg.getToTime());
             int f = 0;
             for(BookMsg bookMsg1:bookMsgs){
-                if(bookMsg1.getResultRoom() == roomId){
+                //遍历用户预定时间段内其余的预定信息
+                //用分配的房间Id与其他用户的预定信息做比较 判断是否此房间已被预定
+                if(bookMsg1.getResultRoom().equals(roomId)){
                     f = 1;
                     break;
                 }
@@ -138,7 +140,7 @@ public class BookMsgController {
             for(CheckIn checkIn:checkIns){
                 if(f == 1)
                     break;
-                if(checkIn.getRoomId() == roomId){
+                if(checkIn.getRoomId().equals(roomId)){
                     f = 1;
                     break;
                 }

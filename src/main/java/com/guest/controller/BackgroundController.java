@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
+
 /**
  * 前端控制器 -- 后台管理员登录
  *
@@ -51,6 +53,19 @@ public class BackgroundController {
 			return new Response(ResponseMsg.PASSWORD_WRONG);
 		}
 		return new Response(ResponseMsg.NO_SUCH_USER);
+	}
+
+	@PostMapping("/modifyBackground")
+	public Response modifyPassword(HttpServletRequest request, String newPassword){
+		String num = (String)request.getAttribute("num");
+		Background background = backgroundService.getById(num);
+		if (background!=null&& background.getBackId().equals(num)){
+			background.setPassword(newPassword);
+			backgroundService.updateById(background);
+			String token = jwtUtill.updateJwt(num);
+			return (new Response()).success(token);
+		}
+		return new Response(ResponseMsg.ILLEGAL_OPERATION);
 	}
 }
 

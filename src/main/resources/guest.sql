@@ -30,7 +30,7 @@ CREATE TABLE `background`  (
 -- ----------------------------
 -- Records of background
 -- ----------------------------
-INSERT INTO `background` VALUES ('admin', '981028');
+INSERT INTO `background` VALUES ('admin', '123456');
 
 -- ----------------------------
 -- Table structure for book_msg
@@ -216,9 +216,9 @@ CREATE TABLE `front`  (
 -- ----------------------------
 -- Records of front
 -- ----------------------------
-INSERT INTO `front` VALUES ('0001', '张雪萍', '123', '13361374723');
-INSERT INTO `front` VALUES ('0002', '连宇豪', '981028', '17360031807');
-INSERT INTO `front` VALUES ('0003', 'lujianbin', '981028', '18827099738');
+INSERT INTO `front` VALUES ('0001', 'front1', '123456', '13333333333');
+INSERT INTO `front` VALUES ('0002', 'front2', '123456', '17333333333');
+INSERT INTO `front` VALUES ('0003', 'front3', '123456', '18888888888');
 
 -- ----------------------------
 -- Table structure for guest

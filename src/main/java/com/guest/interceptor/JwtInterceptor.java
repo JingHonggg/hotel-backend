@@ -2,8 +2,7 @@ package com.guest.interceptor;
 
 import com.guest.utils.JwtUtill;
 import io.jsonwebtoken.Claims;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -16,10 +15,10 @@ import javax.servlet.http.HttpServletResponse;
  * @author chuanguo.cao
  * @since 2022-03-02
  */
+@Slf4j
 public class JwtInterceptor implements HandlerInterceptor {
     @Autowired
     JwtUtill jwtUtill;
-    public static final Logger log = LoggerFactory.getLogger(com.guest.interceptor.JwtInterceptor.class);
 
     /**
      * 进入到控制器方法之前执行的内容
