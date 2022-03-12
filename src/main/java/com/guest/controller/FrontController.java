@@ -59,6 +59,18 @@ public class FrontController {
     }
 
     @PostMapping("/modifyFront")
+    @ApiOperation(value = "修改前台账号")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "Authorization", value = "前台管理员的token", required = true),
+            @ApiImplicitParam(name = "frontId", value = "前台管理员的工号", required = true),
+            @ApiImplicitParam(name = "name", value = "前台管理员的姓名", required = false),
+            @ApiImplicitParam(name = "password", value = "前台管理员的密码", required = true),
+            @ApiImplicitParam(name = "phone", value = "前台管理员的电话", required = false)
+    })
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "请求成功"),
+            @ApiResponse(code = 40104, message = "非法操作, 试图操作不属于自己的数据")
+    })
     public Response updateFront(HttpServletRequest request, Front front) {
         String num = (String) request.getAttribute("num");
         if (frontService.getById(num) != null) {

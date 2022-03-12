@@ -56,6 +56,15 @@ public class BackgroundController {
 	}
 
 	@PostMapping("/modifyBackground")
+	@ApiOperation(value = "修改后台管理员密码")
+	@ApiImplicitParams({
+			@ApiImplicitParam(name = "Authorization", value = "填后台管理员的token", required = true),
+			@ApiImplicitParam(name = "password", value = "后台管理员的密码", required = true),
+	})
+	@ApiResponses({
+			@ApiResponse(code = 200, message = "请求成功"),
+			@ApiResponse(code = 40104, message = "非法操作, 试图操作不属于自己的数据")
+	})
 	public Response modifyPassword(HttpServletRequest request, String newPassword){
 		String num = (String)request.getAttribute("num");
 		Background background = backgroundService.getById(num);

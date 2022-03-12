@@ -124,8 +124,11 @@ public class CheckInController {
 	public Response checkIn(HttpServletRequest request, Long fromTime, Long toTime, String contact, String idCard, String name, String roomId) {
 		String num = (String) request.getAttribute("num");
 		if (frontService.getById(num) != null) {
+			//新建预定订单信息
 			CheckIn checkIn = new CheckIn(0, idCard, roomId, new Timestamp(fromTime), new Timestamp(toTime), 1);
+			//新建用户信息
 			Guest guest = new Guest(idCard, name, contact);
+			//用户存在则更新 不存在则新建
 			guestService.saveOrUpdate(guest);
 			Room room = roomService.getById(roomId);
 			int maxNum = room.getMaxNum();
