@@ -30,6 +30,11 @@ public class JwtInterceptor implements HandlerInterceptor {
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        // 是否验证token
+        boolean isCheck = false;
+        if (isCheck){
+            return true;
+        }
         try {
             if("OPTIONS".equals(request.getMethod())){
                 log.info(request.getMethod());

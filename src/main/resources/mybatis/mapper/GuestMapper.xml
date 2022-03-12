@@ -1,17 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.guest.mapper.GuestMapper">
+    <delete id="delAllSelection">
+        delete from guest where id_card in
+        <foreach collection="array" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+
+    </delete>
 
     <select id="getByIdCard" parameterType="String" resultType="guest">
-        select * from guest where id_card like "%"#{idCard}"%";
+        select *
+        from guest
+        where id_card like "%"#{idCard}"%";
     </select>
 
     <select id="getByContact" parameterType="String" resultType="guest">
-        select * from guest where contact like "%"#{contact}"%";
+        select *
+        from guest
+        where contact like "%"#{contact}"%";
     </select>
 
     <select id="getByName" parameterType="String" resultType="guest">
-        select * from guest where `name` like "%"#{name}"%";
+        select *
+        from guest
+        where `name` like "%"#{name}"%";
     </select>
 
 </mapper>

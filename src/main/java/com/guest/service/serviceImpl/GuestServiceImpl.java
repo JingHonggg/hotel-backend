@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  * <p>
- *  服务实现类
+ * 服务实现类
  * </p>
  *
  * @author chuanguo.cao
@@ -36,5 +36,10 @@ public class GuestServiceImpl extends ServiceImpl<GuestMapper, Guest> implements
     @Override
     public List<Guest> getByName(String name) {
         return guestMapper.getByName(name);
+    }
+
+    @Override
+    public int delAllSelection(String[] selection) {
+        return guestMapper.delAllSelection(selection);
     }
 }

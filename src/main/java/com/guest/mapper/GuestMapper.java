@@ -23,4 +23,6 @@ public interface GuestMapper extends BaseMapper<Guest> {
     List<Guest> getByContact(String contact);
 
     List<Guest> getByName(String name);
+
+    int delAllSelection(String[] selection);
 }
