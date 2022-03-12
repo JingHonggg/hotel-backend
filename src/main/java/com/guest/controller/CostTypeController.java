@@ -1,6 +1,8 @@
 package com.guest.controller;
 
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.guest.pojo.po.Cost;
 import com.guest.pojo.po.CostType;
 import com.guest.pojo.vo.Response;
 import com.guest.pojo.vo.ResponseMsg;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +78,27 @@ public class CostTypeController {
         if(backgroundService.getById(num) != null){
             costService.removeByCostTypeId(id);
             costTypeService.removeById(id);
+            String token = jwtUtill.updateJwt(num);
+            return (new Response()).success(token);
+        }
+        return new Response(ResponseMsg.ILLEGAL_OPERATION);
+    }
+
+    @PostMapping("/batchDeleteCost")
+    @ApiOperation(value="通过id批量删除消费类型")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name="Authorization",value="后台管理员的token",required=true),
+            @ApiImplicitParam(name="idList",value="消费类型的id列表",required=true),
+    })
+    @ApiResponses({
+            @ApiResponse(code=200,message="请求成功"),
+            @ApiResponse(code=40104,message="非法操作, 试图操作不属于自己的数据")
+    })
+    public Response batchDeleteCoust(HttpServletRequest request,@RequestBody String[] idList){
+        String num = (String) request.getAttribute("num");
+        if(backgroundService.getById(num) != null){
+            costService.remove(new QueryWrapper<Cost>().in("cost_type_id",Arrays.asList(idList)));
+            costTypeService.removeByIds(Arrays.asList(idList));
             String token = jwtUtill.updateJwt(num);
             return (new Response()).success(token);
         }
