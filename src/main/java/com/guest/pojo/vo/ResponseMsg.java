@@ -27,6 +27,7 @@ public enum ResponseMsg {
     PLEASE_LOGIN(40103,"当前未登录,请登录"),
     ILLEGAL_OPERATION(40104,"非法操作, 试图操作不属于自己的数据"),
     PASSWORD_WRONG(40105,"密码错误,请核对后重新输入"),
+    INSERT_FAIL(40106,"新增用户失败"),
 
     SERVER_FAIL(500,"服务器端错误"),
     NO_BUCKET(50001,"存储桶不存在"),

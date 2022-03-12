@@ -2,14 +2,16 @@ package com.guest.mapper;
 
 import com.guest.pojo.po.Guest;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.guest.pojo.vo.GetAllGuestVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * <p>
- *  Mapper 接口
+ * Mapper 接口
  * </p>
  *
  * @author chuanguo.cao
@@ -25,4 +27,11 @@ public interface GuestMapper extends BaseMapper<Guest> {
     List<Guest> getByName(String name);
 
     int delAllSelection(String[] selection);
+
+    List<GetAllGuestVo> getAllGuest(String idCard, String userName, String phone);
+
+    int AddGuest(String idCard, String userName, String phone);
+
+    int UpdateGuest(GetAllGuestVo guestVo);
+
 }
