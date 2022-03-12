@@ -30,4 +30,6 @@ public interface CheckInService extends IService<CheckIn> {
     boolean removeByRoomId(String id);
 
     List<CheckIn> getValidCheckIns1(Timestamp fromTimeT, Timestamp toTimeT);
+
+    int AddCheckIn(String idCard ,String roomId,int status);
 }
