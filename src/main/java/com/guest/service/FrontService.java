@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * <p>
- *  服务类
+ * 服务类
  * </p>
  *
  * @author chuanguo.cao
@@ -14,5 +14,5 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public interface FrontService extends IService<Front> {
-
+    int DeleteFronts(String[] frontId);
 }

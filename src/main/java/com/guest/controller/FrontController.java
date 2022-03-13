@@ -179,5 +179,30 @@ public class FrontController {
         }
         return new Response(ResponseMsg.ILLEGAL_OPERATION);
     }
+
+    @PostMapping("/deleteFronts")
+    @ApiOperation(value = "批量删除前台")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "Authorization", value = "token，填后台管理员的token", required = true),
+    })
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "请求成功"),
+            @ApiResponse(code = 40002, message = "数据不存在"),
+            @ApiResponse(code = 40104, message = "非法操作, 试图操作不属于自己的数据")
+    })
+    public Response DeleteFronts(HttpServletRequest request, @RequestBody String[] frontId) {
+        String num = (String) request.getAttribute("num");
+        if (backgroundService.getById(num) != null || frontService.getById(num) != null) {
+            int count = frontService.DeleteFronts(frontId);
+            if (count > 0) {
+                Map<String, Object> resultMap = new HashMap<>();
+                String token = jwtUtill.updateJwt(num);
+                resultMap.put("token", token);
+                return (new Response()).success(resultMap);
+            }
+            return new Response(ResponseMsg.NO_TARGET);
+        }
+        return new Response(ResponseMsg.ILLEGAL_OPERATION);
+    }
 }
 
