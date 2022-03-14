@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * <p>
- *  服务实现类
+ * 服务实现类
  * </p>
  *
  * @author chuanguo.cao
@@ -26,7 +26,7 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
 
     @Override
     public List<CheckIn> getValidCheckIns(Timestamp fromTime, Timestamp toTime) {
-        return checkInMapper.getValidCheckIns(fromTime,toTime);
+        return checkInMapper.getValidCheckIns(fromTime, toTime);
     }
 
     @Override
@@ -52,5 +52,12 @@ public class CheckInServiceImpl extends ServiceImpl<CheckInMapper, CheckIn> impl
     @Override
     public List<CheckIn> getValidCheckIns1(Timestamp fromTimeT, Timestamp toTimeT) {
         return checkInMapper.getValidCheckIns1(fromTimeT, toTimeT);
+    }
+
+    @Override
+    public int AddCheckIn(String idCard, String roomId, int status) {
+        LocalDateTime dt = LocalDateTime.now();
+        LocalDateTime time = dt.plusDays(1);
+        return checkInMapper.AddCheckIn(idCard, roomId, status, time);
     }
 }

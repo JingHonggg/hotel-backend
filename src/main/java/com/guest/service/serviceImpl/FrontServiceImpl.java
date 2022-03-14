@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 
 /**
  * <p>
- *  服务实现类
+ * 服务实现类
  * </p>
  *
  * @author chuanguo.cao
@@ -19,4 +19,9 @@ import org.springframework.stereotype.Service;
 public class FrontServiceImpl extends ServiceImpl<FrontMapper, Front> implements FrontService {
     @Autowired
     private FrontMapper frontMapper;
+
+    @Override
+    public int DeleteFronts(String[] frontId) {
+        return frontMapper.DeleteFronts(frontId);
+    }
 }
