@@ -1,458 +1,319 @@
 package com.guest.controller;
 
-
-import com.guest.pojo.po.BookMsg;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.guest.core.Response;
+import com.guest.core.ResponseMsg;
 import com.guest.pojo.po.CheckIn;
-import com.guest.pojo.po.CostType;
 import com.guest.pojo.po.Room;
-import com.guest.pojo.vo.Response;
-import com.guest.pojo.vo.ResponseMsg;
-import com.guest.pojo.vo.RoomMsg;
-import com.guest.service.*;
+import com.guest.pojo.vo.RoomVo;
+import com.guest.service.IBackgroundService;
+import com.guest.service.ICheckInService;
+import com.guest.service.IFrontService;
+import com.guest.service.IRoomService;
 import com.guest.utils.JwtUtill;
-import io.swagger.annotations.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.HashMap;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
 import java.util.List;
-import java.util.Map;
 
 /**
- * 前端控制器 -- 客房
+ * <p>
+ * 房间表 前端控制器
+ * </p>
  *
- * @author chuanguo.cao
- * @since 2022-03-02
+ * @author lxy
+ * @since 2022-03-17
  */
-@CrossOrigin
-@Transactional
 @RestController
-@Api(tags={"房间"})
+@RequestMapping("/room")
+@Slf4j
+@Api("房间管理")
 public class RoomController {
-    @Autowired
-    private RoomService roomService;
-    @Autowired
-    private BackgroundService backgroundService;
-    @Autowired
-    private BookMsgService bookMsgService;
-    @Autowired
-    private CostService costService;
-    @Autowired
-    private CostTypeService costTypeService;
-    @Autowired
-    private FrontService frontService;
-    @Autowired
-    private CheckInService checkInService;
-    @Autowired
-    private JwtUtill jwtUtill;
 
-    @PostMapping("/addRoom")
-    @ApiOperation(value="添加/修改房间")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name="Authorization",value="后台管理员的token",required=true),
-            @ApiImplicitParam(name="roomId",value="房间id，如果要修改，填要修改的房间id",required=true),
-            @ApiImplicitParam(name="rank",value="房间级别，共A,B,C,D三个级别",required=true),
-            @ApiImplicitParam(name="rent",value="租金，单位是人民币元",required=true),
-            @ApiImplicitParam(name="earnest",value="入住定金，单位是人民币元",required=true),
-            @ApiImplicitParam(name="maxNum",value="最大人数",required=true),
-            @ApiImplicitParam(name="size",value="房间的大小，以平方米为单位",required=true),
-            @ApiImplicitParam(name="position",value="房间的具体位置信息",required=true),
-    })
-    @ApiResponses({
-            @ApiResponse(code=200,message="请求成功"),
-            @ApiResponse(code=40104,message="非法操作, 试图操作不属于自己的数据")
-    })
-    public Response addRoom(HttpServletRequest request, Room room){
+    @Autowired
+    IRoomService roomService;
+
+    @Autowired
+    IBackgroundService backgroundService;
+
+    @Autowired
+    IFrontService frontService;
+
+    @Autowired
+    ICheckInService checkInService;
+
+    @Autowired
+    JwtUtill jwtUtill;
+
+    @PostMapping("/saveRoom")
+    @ApiOperation("新增、修改房间")
+    public Response addRoom(RoomVo room, HttpServletRequest request) {
+        //鉴权 查询是否有操作权限
         String num = (String) request.getAttribute("num");
-        if(backgroundService.getById(num) != null){
-            roomService.saveOrUpdate(room);
-            CostType costType1;
-            CostType costType2;
-            List<CostType> costTypes1 = costTypeService.getCostTypeByName(room.getRoomId()+"房间定金");
-            List<CostType> costTypes2 = costTypeService.getCostTypeByName(room.getRoomId()+"房间租金");
-            if(costTypes1 != null && costTypes1.size() > 0 && costTypes2 != null && costTypes2.size() > 0){
-                costType1 = costTypes1.get(0);
-                costType2 = costTypes2.get(0);
-                costType1.setMoney(0-room.getEarnest());
-                costType1.setMoney(room.getRent());
-            }else{
-                costType1 = new CostType(0,room.getRoomId()+"房间定金",0-room.getEarnest());
-                costType2 = new CostType(0,room.getRoomId()+"房间租金",room.getRent());
-            }
-            costTypeService.saveOrUpdate(costType1);
-            costTypeService.saveOrUpdate(costType2);
-            String token = jwtUtill.updateJwt(num);
-            return (new Response()).success(token);
+        if (!check(num)) {
+            return new Response(ResponseMsg.ILLEGAL_OPERATION);
         }
-        return new Response(ResponseMsg.ILLEGAL_OPERATION);
+        //从数据库中查是否有该房间
+        QueryWrapper<Room> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("room_number", room.getRoomNumber());
+        Room roomInDb = roomService.getOne(queryWrapper);
+        Room newRoom = new Room();
+        //复制room内的属性到newRoom
+        BeanUtils.copyProperties(room, newRoom);
+        //如果数据库中没有该房间的记录
+        if (roomInDb == null) {
+            //如果上传了房间的图片
+            if (room.getFile() != null) {
+                //保存图片 返回图片对应的地址
+                String imageUrl = savePicture(room.getFile(), room.getImageUrl());
+                //将图片地址存入newRoom对象
+                newRoom.setImageUrl(imageUrl);
+            }
+            //将newRoom对象存入数据库
+            roomService.save(newRoom);
+        } else { //如果数据库中有该房间的记录
+            //获取该房间在数据库中的唯一Id
+            newRoom.setId(roomInDb.getId());
+            // 同上！！！
+            if (room.getFile() != null) {
+                String imageUrl = savePicture(room.getFile(), room.getImageUrl());
+                newRoom.setImageUrl(imageUrl);
+            }
+            //更新数据库中该房间的信息
+            roomService.updateById(newRoom);
+        }
+        return Response.success();
     }
 
-
-    @DeleteMapping("/deleteRoom")
-    @ApiOperation(value="删除房间")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name="Authorization",value="后台管理员的token",required=true),
-            @ApiImplicitParam(name="id",value="要删除的房间的id",required=true),
-    })
-    @ApiResponses({
-            @ApiResponse(code=200,message="请求成功"),
-            @ApiResponse(code=40104,message="非法操作, 试图操作不属于自己的数据")
-    })
-    public Response deleteRoom(HttpServletRequest request,String id){
+    @PostMapping("/deleteRoom")
+    @ApiOperation("删除房间")
+    public Response deleteRoom(@RequestBody Room room, HttpServletRequest request) {
+        //鉴权
         String num = (String) request.getAttribute("num");
-        if(backgroundService.getById(num) != null){
-            costService.removeByRoomId(id);
-            bookMsgService.removeByResultRoom(id);
-            checkInService.removeByRoomId(id);
-            costTypeService.removeByName(id+"房间定金");
-            costTypeService.removeByName(id+"房间租金");
-            roomService.removeById(id);
-            String token = jwtUtill.updateJwt(num);
-            return (new Response()).success(token);
+        if (!check(num)) {
+            return new Response(ResponseMsg.ILLEGAL_OPERATION);
         }
-        return new Response(ResponseMsg.ILLEGAL_OPERATION);
-    }
-
-
-    @GetMapping("/getAllRooms")
-    @ApiOperation(value="获取所有的房间")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name="Authorization",value="后/前台管理员的token",required=true)
-    })
-    @ApiResponses({
-            @ApiResponse(code=200,message="请求成功"),
-            @ApiResponse(code=40002,message="数据不存在"),
-            @ApiResponse(code=40104,message="非法操作, 试图操作不属于自己的数据")
-    })
-    public Response getAllRooms(HttpServletRequest request){
-        String num = (String) request.getAttribute("num");
-        if(backgroundService.getById(num) != null || frontService.getById(num) != null){
-            List<Room> rooms = roomService.list();
-            if(rooms != null && rooms.size()>0){
-                Timestamp now = new Timestamp(System.currentTimeMillis());
-                Timestamp later = new Timestamp(System.currentTimeMillis()+31536000000l);
-                //获取当前的预定信息
-                List<BookMsg> bookMsgs = bookMsgService.getBookMsgByTime(now,later);
-                //获取当前正在入住的信息
-                List<CheckIn> checkIns = checkInService.getValidCheckIns(now,now);
-                List<RoomMsg> roomMsgs = new ArrayList<>();
-                for(Room room:rooms){
-                    RoomMsg roomMsg = new RoomMsg(room.getRoomId(),room.getSize(),room.getRank(),room.getRent(),room.getEarnest(),room.getMaxNum(),room.getPosition(),-1,"");
-                    int f = 0;
-                    for(CheckIn checkIn:checkIns){
-                        if(f == 1)
-                            break;
-                        if(checkIn.getRoomId().equals(roomMsg.getRoomId())){
-                            roomMsg.setState(1);
-                            Timestamp fromTime = checkIn.getFromTime();
-                            Timestamp toTime = checkIn.getToTime();
-                            String time = fromTime.toString().substring(0,10).replace("-",".")+"-"+toTime.toString().substring(0,10).replace("-",".");
-                            roomMsg.setTime(time);
-                            roomMsgs.add(roomMsg);
-                            f = 1;
-                        }
-                    }
-
-                    for(BookMsg bookMsg:bookMsgs){
-                        if(f == 1)
-                            break;
-                        if(bookMsg.getResultRoom().equals(roomMsg.getRoomId())){
-                            roomMsg.setState(0);
-                            Timestamp fromTime = bookMsg.getFromTime();
-                            Timestamp toTime = bookMsg.getToTime();
-                            String time = fromTime.toString().substring(0,10).replace("-",".")+"-"+toTime.toString().substring(0,10).replace("-",".");
-                            roomMsg.setTime(time);
-                            roomMsgs.add(roomMsg);
-                            f = 1;
-                        }
-                    }
-                    if(f != 1)
-                        roomMsgs.add(roomMsg);
-                }
-                Map<String,Object> resultMap = new HashMap<>();
-                String token = jwtUtill.updateJwt(num);
-                resultMap.put("roomMsgs",roomMsgs);
-                resultMap.put("token",token);
-                return (new Response()).success(resultMap);
-            }
-            return new Response(ResponseMsg.NO_TARGET);
+        if (room.getId() == null) {
+            return Response.fail("房间Id为空");
         }
-        return new Response(ResponseMsg.ILLEGAL_OPERATION);
-    }
-
-
-    @GetMapping("/getRoomById")
-    @ApiOperation(value="通过id获取房间")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name="Authorization",value="后/前台管理员的token",required=true),
-            @ApiImplicitParam(name="id",value="房间的id",required=true),
-    })
-    @ApiResponses({
-            @ApiResponse(code=200,message="请求成功"),
-            @ApiResponse(code=40002,message="数据不存在"),
-            @ApiResponse(code=40104,message="非法操作, 试图操作不属于自己的数据")
-    })
-    public Response getRoomById(HttpServletRequest request,String id){
-        String num = (String) request.getAttribute("num");
-        if(backgroundService.getById(num) != null || frontService.getById(num) != null){
-            Room room = roomService.getById(id);
-
-            if(room != null ){
-                Timestamp now = new Timestamp(System.currentTimeMillis());
-                Timestamp later = new Timestamp(System.currentTimeMillis()+31536000000l);
-                //获取当前的预定信息
-                List<BookMsg> bookMsgs = bookMsgService.getBookMsgByTime(now,later);
-                //获取当前正在入住的信息
-                List<CheckIn> checkIns = checkInService.getValidCheckIns(now,now);
-                RoomMsg roomMsg = new RoomMsg(room.getRoomId(),room.getSize(),room.getRank(),room.getRent(),room.getEarnest(),room.getMaxNum(),room.getPosition(),-1,"");
-                int f = 0;
-                for(CheckIn checkIn:checkIns){
-                    if(f == 1)
-                        break;
-                    if(checkIn.getRoomId().equals(roomMsg.getRoomId())){
-                        roomMsg.setState(1);
-                        Timestamp fromTime = checkIn.getFromTime();
-                        Timestamp toTime = checkIn.getToTime();
-                        String time = fromTime.toString().substring(0,10).replace("-",".")+"-"+toTime.toString().substring(0,10).replace("-",".");
-                        roomMsg.setTime(time);
-                        f = 1;
-                    }
-                }
-
-                for(BookMsg bookMsg:bookMsgs){
-                    if(f == 1)
-                        break;
-                    if(bookMsg.getResultRoom().equals(roomMsg.getRoomId())){
-                        roomMsg.setState(0);
-                        Timestamp fromTime = bookMsg.getFromTime();
-                        Timestamp toTime = bookMsg.getToTime();
-                        String time = fromTime.toString().substring(0,10).replace("-",".")+"-"+toTime.toString().substring(0,10).replace("-",".");
-                        roomMsg.setTime(time);
-                        f = 1;
-                    }
-                }
-                Map<String,Object> resultMap = new HashMap<>();
-                String token = jwtUtill.updateJwt(num);
-                resultMap.put("roomMsg",roomMsg);
-                resultMap.put("token",token);
-                return (new Response()).success(resultMap);
-            }
-            return new Response(ResponseMsg.NO_TARGET);
+        //查询数据库中该房间的信息
+        Room roomInDb = roomService.getById(room.getId());
+        //若为入住状态 不可删除 直接返回
+        if (roomInDb.getRoomStatus() == 3) {
+            return Response.fail("房间处于入住状态,不允许删除!");
         }
-        return new Response(ResponseMsg.ILLEGAL_OPERATION);
+        //非入住状态时 可以删除
+        try {
+            //删除房间对应的图片
+            removePicture(roomInDb.getImageUrl());
+            //删除房间
+            roomService.removeById(roomInDb.getId());
+            return Response.success();
+        } catch (Exception e) {
+            return Response.fail("房间删除失败, " + e.getClass());
+        }
     }
 
     /**
-     * 获取所有的空房间
-     * @param request
+     * 鉴权 校验是否有操作权限
+     *
+     * @param name
      * @return
      */
-    @GetMapping("/getNullRooms")
-    @ApiOperation(value="获取现在所有的空房间")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name="Authorization",value="后/前台管理员的token",required=true)
-    })
-    @ApiResponses({
-            @ApiResponse(code=200,message="请求成功"),
-            @ApiResponse(code=40002,message="数据不存在"),
-            @ApiResponse(code=40104,message="非法操作, 试图操作不属于自己的数据")
-    })
-    public Response getNullRooms(HttpServletRequest request){
-        String num = (String) request.getAttribute("num");
-        if(backgroundService.getById(num) != null || frontService.getById(num) != null){
-            Timestamp now = new Timestamp(System.currentTimeMillis());
-            List<Room> rooms = roomService.list();
-            //获取当前的预定信息
-            List<BookMsg> bookMsgs = bookMsgService.getBookMsgByTime(now,now);
-            //获取当前正在入住的信息
-            List<CheckIn> checkIns = checkInService.getValidCheckIns(now,now);
-            List<Room> nullRooms = new ArrayList<>();
-            for(Room room:rooms){
-                String roomId = room.getRoomId();
-                int f = 0;
-                for(BookMsg bookMsg:bookMsgs){
-                    if(roomId.equals(bookMsg.getResultRoom()) ){
-                        f = 1;
-                        break;
-                    }
-                }
-                for(CheckIn checkIn:checkIns){
-                    if(f == 1)
-                        break;
-                    if(roomId.equals(checkIn.getRoomId()) ){
-                        f = 1;
-                        break;
-                    }
-                }
-                if(f == 0){
-                   nullRooms.add(room);
-                }
-            }
-            if(rooms != null && rooms.size()>0){
-                Map<String,Object> resultMap = new HashMap<>();
-                String token = jwtUtill.updateJwt(num);
-                resultMap.put("nullRooms",nullRooms);
-                resultMap.put("token",token);
-                return (new Response()).success(resultMap);
-            }
-            return new Response(ResponseMsg.NO_TARGET);
-        }
-        return new Response(ResponseMsg.ILLEGAL_OPERATION);
+    private Boolean check(String name) {
+        //判断操作的用户是否是前端管理员或者后台管理员
+        return backgroundService.getById(name) != null || frontService.getById(name) != null;
     }
 
     /**
-     * 获取所有已经入住的房间
-     * @param request
+     * 保存图片到本地 返回图片在本地的 URL
+     *
+     * @param file       文件对象
+     * @param originPath 原图片的 URL
      * @return
      */
-    @GetMapping("/getHasCheckedRoom")
-    @ApiOperation(value="获取现在所有已经入住的房间")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name="Authorization",value="后/前台管理员的token",required=true)
-    })
-    @ApiResponses({
-            @ApiResponse(code=200,message="请求成功"),
-            @ApiResponse(code=40002,message="数据不存在"),
-            @ApiResponse(code=40104,message="非法操作, 试图操作不属于自己的数据")
-    })
-    public Response getHasCheckedRoom(HttpServletRequest request){
-        String num = (String) request.getAttribute("num");
-        if(backgroundService.getById(num) != null || frontService.getById(num) != null){
-            Timestamp now = new Timestamp(System.currentTimeMillis());
-            //获取当前正在入住的信息
-            List<CheckIn> checkIns = checkInService.getValidCheckIns(now,now);
-            List<RoomMsg> roomMsgs = new ArrayList<>();
-            for(CheckIn checkIn:checkIns){
-                Room room = roomService.getById(checkIn.getRoomId());
-                RoomMsg roomMsg = new RoomMsg(room.getRoomId(),room.getSize(),room.getRank(),room.getRent(),room.getEarnest(),room.getMaxNum(),room.getPosition(),1,"");
-                Timestamp fromTime = checkIn.getFromTime();
-                Timestamp toTime = checkIn.getToTime();
-                String time = fromTime.toString().substring(0,10).replace("-",".")+"-"+toTime.toString().substring(0,10).replace("-",".");
-                roomMsg.setTime(time);
-                roomMsgs.add(roomMsg);
+    private String savePicture(MultipartFile file, String originPath) {
+        //原路径为空 证明之前房间没有上传过图片 则保存file到本地
+        if (originPath == null) {
+            //图片存储目录
+            String dirPath = System.getProperty("user.dir") + "\\roomPicture";
+            //图片新名称 命名方式: 当前时间戳.jpg  避免图片名称出现重复
+            String fileName = System.currentTimeMillis() + ".jpg";  //以时间戳重新命名图片
+            //图片保存的路径
+            String savePath = dirPath + File.separator;
+            log.info("图片保存地址：" + savePath);
+            // 图片的访问路径 = 保存路径 + 文件名
+            String visitPath = savePath + fileName;
+            log.info("图片访问uri：" + visitPath);
+            //创建文件对象
+            File saveFile = new File(visitPath);
+            //文件对象是否存在 不存在则创建
+            if (!saveFile.exists()) {
+                saveFile.mkdirs();
             }
-            if(roomMsgs != null && roomMsgs.size()>0){
-                Map<String,Object> resultMap = new HashMap<>();
-                String token = jwtUtill.updateJwt(num);
-                resultMap.put("roomMsgs",roomMsgs);
-                resultMap.put("token",token);
-                return (new Response()).success(resultMap);
+            try {
+                //将上传的房间图片文件移动到真实存储路径下
+                file.transferTo(saveFile);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            return new Response(ResponseMsg.NO_TARGET);
+            //返回图片存储的路径
+            return visitPath;
+        } else { //原路径不为空 证明之前上传国图片 则直接更新图片即可
+            try {
+                //创建图片所在地址的文件对象
+                File originFile = new File(originPath);
+                //删除原来的文件
+                originFile.delete();
+                //保存新的图片文件
+                file.transferTo(originFile);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            //返回图片对应的地址
+            return originPath;
         }
-        return new Response(ResponseMsg.ILLEGAL_OPERATION);
     }
 
     /**
-     * 获取所有已经被预定的房间
-     * @param request
-     * @return
+     * 删除图片
+     *
+     * @param path 图片的地址
      */
-    @GetMapping("/getHasBookedRoom")
-    @ApiOperation(value="获取现在所有已经被预定的房间")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name="Authorization",value="后/前台管理员的token",required=true)
-    })
-    @ApiResponses({
-            @ApiResponse(code=200,message="请求成功"),
-            @ApiResponse(code=40002,message="数据不存在"),
-            @ApiResponse(code=40104,message="非法操作, 试图操作不属于自己的数据")
-    })
-    public Response getHasBookedRoom(HttpServletRequest request){
-        String num = (String) request.getAttribute("num");
-        if(backgroundService.getById(num) != null || frontService.getById(num) != null){
-            Timestamp now = new Timestamp(System.currentTimeMillis());
-            List<RoomMsg> roomMsgs = new ArrayList<>();
-            //获取当前的预定信息
-            List<BookMsg> bookMsgs = bookMsgService.getBookMsgByTime(now,now);
-            for(BookMsg bookMsg:bookMsgs){
-                Room room = roomService.getById(bookMsg.getResultRoom());
-                RoomMsg roomMsg = new RoomMsg(room.getRoomId(),room.getSize(),room.getRank(),room.getRent(),room.getEarnest(),room.getMaxNum(),room.getPosition(),0,"");
-                Timestamp fromTime = bookMsg.getFromTime();
-                Timestamp toTime = bookMsg.getToTime();
-                String time = fromTime.toString().substring(0,10).replace("-",".")+"-"+toTime.toString().substring(0,10).replace("-",".");
-                roomMsg.setTime(time);
-                roomMsgs.add(roomMsg);
-            }
-            if(roomMsgs != null && roomMsgs.size()>0){
-                Map<String,Object> resultMap = new HashMap<>();
-                String token = jwtUtill.updateJwt(num);
-                resultMap.put("roomMsgs",roomMsgs);
-                resultMap.put("token",token);
-                return (new Response()).success(resultMap);
-            }
-            return new Response(ResponseMsg.NO_TARGET);
+    private void removePicture(String path) {
+        if (path != null) {
+            File file = new File(path);
+            file.delete();
         }
-        return new Response(ResponseMsg.ILLEGAL_OPERATION);
     }
 
+    @GetMapping("/getRooms")
+    @ApiOperation("获取所有房间列表")
+    public Response getRooms(HttpServletRequest request) {
+        //鉴权
+        String num = (String) request.getAttribute("num");
+        if (!check(num)) {
+            return new Response(ResponseMsg.ILLEGAL_OPERATION);
+        }
+        List<Room> roomList;
+        try {
+            //查询所有房间
+            roomList = roomService.list();
+            //返回房间的列表
+            return Response.success(roomList);
+        } catch (Exception e) {
+            return Response.fail("获取房间列表失败, " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/checkOut")
+    @ApiOperation("退房操作")
+    @Transactional(rollbackFor = Exception.class)
+    public Response checkOut(@RequestParam String roomNumber, HttpServletRequest request) {
+        //鉴权
+        String num = (String) request.getAttribute("num");
+        if (!check(num)) {
+            return new Response(ResponseMsg.ILLEGAL_OPERATION);
+        }
+        //判断并更新房间状态
+        QueryWrapper<Room> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("room_number", roomNumber);
+        //查询数据库中该房间的信息
+        Room room = roomService.getOne(queryWrapper);
+        //判断房间状态是否为入住中
+        if (room.getRoomStatus() == 3) {
+            //为入住中则将房间状态设置为打扫中
+            room.setRoomStatus(2);
+            //更新房间信息
+            roomService.updateById(room);
+        } else {
+            return Response.fail("房间状态非入住中,无法退房。");
+        }
+        //入住信息改为离店
+        modifyCheckInStatus(roomNumber);
+        return Response.success();
+    }
+
+    @PostMapping("/updateRoomStatus")
+    @ApiOperation("更新房间状态")
+    public Response updateStatus(@RequestParam String roomNumber, HttpServletRequest request) {
+        //鉴权
+        String num = (String) request.getAttribute("num");
+        if (!check(num)) {
+            return new Response(ResponseMsg.ILLEGAL_OPERATION);
+        }
+        QueryWrapper<Room> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("room_number", roomNumber);
+        //查询数据库中对应的房间信息
+        Room roomInDb = roomService.getOne(queryWrapper);
+        //房间状态是否为打扫中
+        if (roomInDb.getRoomStatus() == 2) {
+            //是则将状态更改为空闲中
+            roomInDb.setRoomStatus(1);
+            try {
+                //更新房间信息
+                roomService.updateById(roomInDb);
+                return Response.success();
+            } catch (Exception e) {
+                return Response.fail("房间状态更新失败, " + e.getMessage());
+            }
+        }
+        return Response.fail("房间状态非打扫中,更新状态失败");
+    }
+
+    @PostMapping("/getImage")
+    @ApiOperation("获取图片流")
+    public void getImage(@RequestParam String imageUrl,HttpServletResponse response) {
+        //创建图片url对应的文件对象
+        File imageFile = new File(imageUrl);
+        try {
+            //获取与文件的连接对象
+            FileInputStream fis = new FileInputStream(imageFile);
+            //创建文件对应大小的字节数组
+            byte[] bytes = new byte[fis.available()];
+            //将文件读取为字节数组
+            fis.read(bytes);
+            //关闭文件的连接对象
+            fis.close();  //关闭流 避免其余地方使用该图片地址时 造成无法操作的Bug
+            //设置返回格式为 jpg格式的图片
+            response.setContentType("image/JPEG");
+            //以文件流形式返回图片对象
+            response.getOutputStream().write(bytes);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
-     * 按等级获取指定时间内可以安排给预定客户或入住客户的房间
-     * @param request
-     * @return
+     * 更改入住信息的状态
+     * @param roomNumber
      */
-    @GetMapping("/getNullRoomsByRank")
-    @ApiOperation(value="按等级获取指定时间内可以安排给预定客户或入住客户的房间")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name="Authorization",value="后/前台管理员的token",required=true)
-    })
-    @ApiResponses({
-            @ApiResponse(code=200,message="请求成功"),
-            @ApiResponse(code=40002,message="数据不存在"),
-            @ApiResponse(code=40104,message="非法操作, 试图操作不属于自己的数据")
-    })
-    public Response getNullRoomsByRank(HttpServletRequest request,long fromTime,long toTime,String rank) {
-        String num = (String) request.getAttribute("num");
-        if (backgroundService.getById(num) != null || frontService.getById(num) != null) {
-            Timestamp fromTimeT = new Timestamp(fromTime);
-            Timestamp toTimeT = new Timestamp(toTime);
-            List<Room> rooms = roomService.list();
-            //获取当前的预定信息
-            List<BookMsg> bookMsgs = bookMsgService.getBookMsgByTime1(fromTimeT, toTimeT);
-            System.out.println(bookMsgs);
-            //获取当前正在入住的信息
-            List<CheckIn> checkIns = checkInService.getValidCheckIns1(fromTimeT, toTimeT);
-            List<Room> nullRooms = new ArrayList<>();
-            for (Room room : rooms) {
-                if(rank.equals(room.getRank())){
-                    String roomId = room.getRoomId();
-                    int f = 0;
-                    for (BookMsg bookMsg : bookMsgs) {
-                        if (roomId.equals(bookMsg.getResultRoom())) {
-                            f = 1;
-                            break;
-                        }
-                    }
-                    for (CheckIn checkIn : checkIns) {
-                        if (f == 1)
-                            break;
-                        if (roomId.equals(checkIn.getRoomId())) {
-                            f = 1;
-                            break;
-                        }
-                    }
-                    if (f == 0) {
-                        nullRooms.add(room);
-                    }
-                }
+    private void modifyCheckInStatus(String roomNumber) {
+        try {
+            QueryWrapper<CheckIn> queryWrapper = new QueryWrapper<>();
+            //查询数据库中对应房间号的入住信息
+            queryWrapper
+                    .ne("status", 1) //查询状态为未离店的入住信息
+                    .eq("room_number", roomNumber);
+            CheckIn checkIn = checkInService.getOne(queryWrapper);
+            //若入住信息不为空
+            if (checkIn != null) {
+                //将入住信息状态更改为已离店
+                checkIn.setStatus(true);
+                //更新入住信息
+                checkInService.updateById(checkIn);
             }
-            if (rooms != null && rooms.size() > 0) {
-                Map<String, Object> resultMap = new HashMap<>();
-                String token = jwtUtill.updateJwt(num);
-                resultMap.put("nullRooms", nullRooms);
-                resultMap.put("token", token);
-                return (new Response()).success(resultMap);
-            }
-            return new Response(ResponseMsg.NO_TARGET);
+        } catch (Exception e) {
+            throw e;
         }
-        return new Response(ResponseMsg.ILLEGAL_OPERATION);
     }
 }
-

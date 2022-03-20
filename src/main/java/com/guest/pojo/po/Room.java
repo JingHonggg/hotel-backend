@@ -1,58 +1,68 @@
 package com.guest.pojo.po;
 
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.time.LocalDateTime;
+import java.io.Serializable;
+
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.extension.activerecord.Model;
-import lombok.AllArgsConstructor;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 
 /**
  * <p>
- * 房间信息
+ * 房间表
  * </p>
  *
- * @author chuanguo.cao
- * @since 2022-03-02
+ * @author lxy
+ * @since 2022-03-17
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class Room extends Model<Room> {
+@EqualsAndHashCode(callSuper = false)
+@ApiModel(value="Room对象", description="房间表")
+public class Room implements Serializable {
 
-    /**
-     * 房间编号
-     */
-    @TableId(value = "room_id")
-    private String roomId;
+    private static final long serialVersionUID = 1L;
 
-    /**
-     * 房间的大小，以平方米为单位
-     */
-    private Double size;
+    @ApiModelProperty(value = "唯一标识")
+    @TableId(type = IdType.AUTO)
+    private Long id;
 
-    /**
-     * 级别，分A,B,C,D级，级别依次降低
-     */
-    private String rank;
+    @ApiModelProperty(value = "房间编号")
+    private String roomNumber;
 
-    /**
-     * 租金，单位是人民币元
-     */
-    private Double rent;
+    @ApiModelProperty(value = "房间类型")
+    private String roomType;
 
-    /**
-     * 入住定金，单位是人民币元
-     */
-    private Double earnest;
+    @ApiModelProperty(value = "房间状态 1-空闲中 2-打扫中 3-入住中")
+    private Integer roomStatus;
 
-    /**
-     * 最大人数
-     */
-    private Integer maxNum;
+    @ApiModelProperty(value = "房间位置")
+    private String location;
 
-    /**
-     * 地理位置
-     */
-    private String position;
+    @ApiModelProperty(value = "房间容纳人数")
+    private Integer size;
+
+    @ApiModelProperty(value = "当日房价")
+    private BigDecimal price;
+
+    @ApiModelProperty(value = "房间设施")
+    private String facility;
+
+    @ApiModelProperty(value = "附件图片地址")
+    private String imageUrl;
+
+    @ApiModelProperty(value = "创建录入人")
+    private String createdBy;
+
+    @ApiModelProperty(value = "创建时间")
+    private Date createTime;
+
+    @ApiModelProperty(value = "更新时间")
+    private Date updateTime;
+
 
 }

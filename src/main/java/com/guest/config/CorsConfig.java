@@ -8,7 +8,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 /**
  * 前端控制器
  *
- * @author chuanguo.cao
+ * @author lxy
  * @since 2022-03-02
  */
 @Configuration

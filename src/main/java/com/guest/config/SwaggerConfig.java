@@ -19,7 +19,7 @@ import java.util.List;
  * swagger配置类
  * 接口地址：http://localhost:8088/hotel-api/swagger-ui.html
  *
- * @author chuanguo.cao
+ * @author lxy
  * @since 2022-03-02
  */
 @Configuration

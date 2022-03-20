@@ -1,15 +1,15 @@
 package com.guest.controller;
 
 
+import com.guest.core.Response;
+import com.guest.core.ResponseMsg;
 import com.guest.pojo.po.Front;
-import com.guest.pojo.vo.Response;
-import com.guest.pojo.vo.ResponseMsg;
-import com.guest.service.BackgroundService;
-import com.guest.service.FrontService;
+import com.guest.service.IBackgroundService;
+import com.guest.service.IFrontService;
 import com.guest.utils.JwtUtill;
 import io.swagger.annotations.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -18,22 +18,53 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 前端控制器 -- 前台管理员登录
+ * <p>
+ * 前台管理员表 前端控制器
+ * </p>
  *
- * @author chuanguo.cao
- * @since 2022-03-02
+ * @author lxy
+ * @since 2022-03-17
  */
-@CrossOrigin
-@Transactional
 @RestController
-@Api(tags = {"前台管理员"})
+@Slf4j
+@RequestMapping("/front")
+@Api(tags = {"前台管理"})
 public class FrontController {
+
     @Autowired
-    private FrontService frontService;
+    IFrontService frontService;
+
     @Autowired
-    private BackgroundService backgroundService;
+    IBackgroundService backgroundService;
+
     @Autowired
-    private JwtUtill jwtUtill;
+    JwtUtill jwtUtill;
+
+    @GetMapping("/getAllFront")
+    @ApiOperation(value = "获取所有的前台账号")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "Authorization", value = "token，填后台管理员的token", required = true),
+    })
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "请求成功"),
+            @ApiResponse(code = 40002, message = "数据不存在"),
+            @ApiResponse(code = 40104, message = "非法操作, 试图操作不属于自己的数据")
+    })
+    public Response getAllFront(HttpServletRequest request) {
+        String num = (String) request.getAttribute("num");
+        if (backgroundService.getById(num) != null) {
+            List<Front> fronts = frontService.list();
+            if (fronts != null && fronts.size() > 0) {
+                Map<String, Object> resultMap = new HashMap<>();
+                String token = jwtUtill.updateJwt(num);
+                resultMap.put("fronts", fronts);
+                resultMap.put("token", token);
+                return (new Response()).success(resultMap);
+            }
+            return new Response(ResponseMsg.NO_TARGET);
+        }
+        return new Response(ResponseMsg.ILLEGAL_OPERATION);
+    }
 
     @PostMapping("/addFront")
     @ApiOperation(value = "添加前台账号")
@@ -76,80 +107,7 @@ public class FrontController {
         if (frontService.getById(num) != null) {
             frontService.updateById(front);
             String token = jwtUtill.updateJwt(num);
-            return new Response().success(token);
-        }
-        return new Response(ResponseMsg.ILLEGAL_OPERATION);
-    }
-
-
-    @DeleteMapping("/deleteFront")
-    @ApiOperation(value = "删除前台账号")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "Authorization", value = "填后台管理员的token", required = true),
-            @ApiImplicitParam(name = "id", value = "要删除的前台员工的账号id，", required = true)
-    })
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "请求成功"),
-            @ApiResponse(code = 40104, message = "非法操作, 试图操作不属于自己的数据")
-    })
-    public Response deleteFront(HttpServletRequest request, int id) {
-        String num = (String) request.getAttribute("num");
-        if (backgroundService.getById(num) != null) {
-            frontService.removeById(id);
-            String token = jwtUtill.updateJwt(num);
-            return (new Response()).success(token);
-        }
-        return new Response(ResponseMsg.ILLEGAL_OPERATION);
-    }
-
-
-    @PostMapping("/frontLogin")
-    @ApiOperation(value = "前台登录")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "Authorization", value = "token，不填", required = false),
-            @ApiImplicitParam(name = "frontId", value = "前台员工的账号id，", required = true),
-            @ApiImplicitParam(name = "password", value = "密码", required = true)
-    })
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "请求成功"),
-            @ApiResponse(code = 40105, message = "密码错误,请核对后重新输入"),
-            @ApiResponse(code = 40005, message = "该用户不存在")
-    })
-    public Response frontLogin(String frontId, String password) {
-        Front front1 = frontService.getById(frontId);
-        if (front1 != null) {
-            if (front1.getPassword().equals(password)) {
-                String token = jwtUtill.updateJwt(frontId);
-                return (new Response()).success(token);
-            }
-            return new Response(ResponseMsg.PASSWORD_WRONG);
-        }
-        return new Response(ResponseMsg.NO_SUCH_USER);
-    }
-
-
-    @GetMapping("/getAllFront")
-    @ApiOperation(value = "获取所有的前台账号")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "Authorization", value = "token，填后台管理员的token", required = true),
-    })
-    @ApiResponses({
-            @ApiResponse(code = 200, message = "请求成功"),
-            @ApiResponse(code = 40002, message = "数据不存在"),
-            @ApiResponse(code = 40104, message = "非法操作, 试图操作不属于自己的数据")
-    })
-    public Response getAllFront(HttpServletRequest request) {
-        String num = (String) request.getAttribute("num");
-        if (backgroundService.getById(num) != null) {
-            List<Front> fronts = frontService.list();
-            if (fronts != null && fronts.size() > 0) {
-                Map<String, Object> resultMap = new HashMap<>();
-                String token = jwtUtill.updateJwt(num);
-                resultMap.put("fronts", fronts);
-                resultMap.put("token", token);
-                return (new Response()).success(resultMap);
-            }
-            return new Response(ResponseMsg.NO_TARGET);
+            return Response.success(token);
         }
         return new Response(ResponseMsg.ILLEGAL_OPERATION);
     }
@@ -180,6 +138,28 @@ public class FrontController {
         return new Response(ResponseMsg.ILLEGAL_OPERATION);
     }
 
+
+
+    @DeleteMapping("/deleteFront")
+    @ApiOperation(value = "删除前台账号")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "Authorization", value = "填后台管理员的token", required = true),
+            @ApiImplicitParam(name = "id", value = "要删除的前台员工的账号id，", required = true)
+    })
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "请求成功"),
+            @ApiResponse(code = 40104, message = "非法操作, 试图操作不属于自己的数据")
+    })
+    public Response deleteFront(HttpServletRequest request, int id) {
+        String num = (String) request.getAttribute("num");
+        if (backgroundService.getById(num) != null) {
+            frontService.removeById(id);
+            String token = jwtUtill.updateJwt(num);
+            return (new Response()).success(token);
+        }
+        return new Response(ResponseMsg.ILLEGAL_OPERATION);
+    }
+
     @PostMapping("/deleteFronts")
     @ApiOperation(value = "批量删除前台")
     @ApiImplicitParams({
@@ -204,5 +184,28 @@ public class FrontController {
         }
         return new Response(ResponseMsg.ILLEGAL_OPERATION);
     }
-}
 
+    @PostMapping("/frontLogin")
+    @ApiOperation(value = "前台登录")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "Authorization", value = "token，不填", required = false),
+            @ApiImplicitParam(name = "frontId", value = "前台员工的账号id，", required = true),
+            @ApiImplicitParam(name = "password", value = "密码", required = true)
+    })
+    @ApiResponses({
+            @ApiResponse(code = 200, message = "请求成功"),
+            @ApiResponse(code = 40105, message = "密码错误,请核对后重新输入"),
+            @ApiResponse(code = 40005, message = "该用户不存在")
+    })
+    public Response frontLogin(String frontId, String password) {
+        Front front1 = frontService.getById(frontId);
+        if (front1 != null) {
+            if (front1.getPassword().equals(password)) {
+                String token = jwtUtill.updateJwt(frontId);
+                return Response.success(token);
+            }
+            return new Response(ResponseMsg.PASSWORD_WRONG);
+        }
+        return new Response(ResponseMsg.NO_SUCH_USER);
+    }
+}

@@ -18,7 +18,7 @@ import java.util.Date;
  *  Jwt工具类
  * </p>
  *
- * @author chuanguo.cao
+ * @author lxy
  * @since 2022-03-02
  */
 @Data

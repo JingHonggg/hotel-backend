@@ -12,7 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 /**
  * 拦截器、与 JWT配合完成鉴权
  *
- * @author chuanguo.cao
+ * @author lxy
  * @since 2022-03-02
  */
 @Slf4j
@@ -40,8 +40,6 @@ public class JwtInterceptor implements HandlerInterceptor {
                 log.info(request.getMethod());
                 return true;
             }
-
-
             String url = request.getRequestURL().toString();
             log.info(url);
             Claims claims = jwtUtill.getClaims(request);

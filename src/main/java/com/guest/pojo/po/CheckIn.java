@@ -1,57 +1,68 @@
 package com.guest.pojo.po;
 
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.extension.activerecord.Model;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-import java.sql.Timestamp;
+import java.math.BigDecimal;
+import java.sql.Date;
 import java.time.LocalDateTime;
+import java.io.Serializable;
+
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * <p>
- * 入住情况
+ * 入住信息表
  * </p>
  *
- * @author chuanguo.cao
- * @since 2022-03-02
+ * @author lxy
+ * @since 2022-03-17
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class CheckIn extends Model<CheckIn> {
+@EqualsAndHashCode(callSuper = false)
+@ApiModel(value="CheckIn对象", description="入住信息表")
+public class CheckIn implements Serializable {
 
-    /**
-     * 入住情况的id
-     */
-    @TableId(value = "id")
-    private Integer id;
+    private static final long serialVersionUID = 1L;
 
+    @ApiModelProperty(value = "唯一标识")
+    @TableId(value = "id",type = IdType.ASSIGN_ID)
+    private Long id;
 
-    /**
-     * 客户的id
-     */
-    private String guestIdCard;
+    @ApiModelProperty(value = "房间编号")
+    private String roomNumber;
 
-    /**
-     * 房间号
-     */
-    private String roomId;
+    @ApiModelProperty(value = "开房人")
+    private String registrant;
 
-    /**
-     * 入住日期
-     */
-    private Timestamp fromTime;
+    @ApiModelProperty(value = "押金")
+    private BigDecimal cashPledge;
 
-    /**
-     * 预计退房时间
-     */
-    private Timestamp toTime;
+    @ApiModelProperty(value = "应付金额")
+    private BigDecimal shouldPay;
 
-    /**
-     * 状态，0代表已退房，1代表正在入住
-     */
-    private Integer state;
+    @ApiModelProperty(value = "实付金额")
+    private BigDecimal realPay;
+
+    @ApiModelProperty(value = "入住时间")
+    private LocalDateTime inDate;
+
+    @ApiModelProperty(value = "离店时间")
+    private LocalDateTime outDate;
+
+    @ApiModelProperty(value = "入住信息登记人")
+    private String createdBy;
+
+    @ApiModelProperty(value = "创建时间")
+    private Date createTime;
+
+    @ApiModelProperty(value = "更新时间")
+    private Date updateTime;
+
+    @ApiModelProperty(value = "是否已离店")
+    private Boolean status;
+
 
 }

@@ -1,34 +1,34 @@
 package com.guest.pojo.po;
 
+import java.io.Serializable;
+
 import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.extension.activerecord.Model;
-import lombok.AllArgsConstructor;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
+import lombok.EqualsAndHashCode;
 
 /**
  * <p>
- * 后台管理的账号
+ * 超级管理员表
  * </p>
  *
- * @author chuanguo.cao
- * @since 2022-03-02
+ * @author lxy
+ * @since 2022-03-17
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class Background extends Model<Background> {
+@EqualsAndHashCode(callSuper = false)
+@ApiModel(value="Background对象", description="超级管理员表")
+public class Background implements Serializable {
 
-    /**
-     * 后台管理的工号
-     */
-    @TableId(value = "back_id")
+    private static final long serialVersionUID = 1L;
+
+    @ApiModelProperty(value = "用户名")
+    @TableId("back_id")
     private String backId;
 
-    /**
-     * 后台登录密码
-     */
+    @ApiModelProperty(value = "密码")
     private String password;
+
 
 }

@@ -2,21 +2,17 @@ package com.guest.mapper;
 
 import com.guest.pojo.po.Room;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import org.apache.ibatis.annotations.Mapper;
-import org.springframework.stereotype.Repository;
-
-import java.util.List;
+import org.apache.ibatis.annotations.Param;
 
 /**
  * <p>
- *  Mapper 接口
+ * 房间表 Mapper 接口
  * </p>
  *
- * @author chuanguo.cao
- * @since 2022-03-02
+ * @author lxy
+ * @since 2022-03-17
  */
-@Mapper
-@Repository
 public interface RoomMapper extends BaseMapper<Room> {
-    List<Room> getRoomsByType(String rank);
+
+    int batchDelete(@Param("Ids")String[] Ids);
 }
