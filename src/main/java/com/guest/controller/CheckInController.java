@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -136,9 +137,11 @@ public class CheckInController {
             //如果入住信息为空 直接返回
             if (checkIn == null)
                 return false;
-            CheckCustomerRelation relation = new CheckCustomerRelation();
+            List<CheckCustomerRelation> list = new ArrayList<>();
+            relationService.remove(new QueryWrapper<CheckCustomerRelation>().eq("check_in_id",checkIn.getId()));
             //遍历入住的客人数组 与当前入住信息建立关联
             checkInUser.forEach(item -> {
+            CheckCustomerRelation relation = new CheckCustomerRelation();
                 //查询数据库中中是否有该客人信息
                 QueryWrapper<Customer> customerQueryWrapper = new QueryWrapper<>();
                 customerQueryWrapper.eq("id_number", item.getIdNumber());
@@ -147,15 +150,9 @@ public class CheckInController {
                 relation.setCustomerId(customer.getId());
                 //获取本次入住信息的Id
                 relation.setCheckInId(checkIn.getId());
-                //查询数据库中是否有当前客人+当前入住信息的记录 有则无需再记录 无则保存记录
-                CheckCustomerRelation relationInDb = relationService.getOne(
-                        new QueryWrapper<CheckCustomerRelation>()
-                                .eq("customer_id", customer.getId())
-                                .eq("check_in_id", checkIn.getId()));
-                //数据库中无该记录 则新增记录
-                if (relationInDb == null)
-                    relationService.save(relation);
+                list.add(relation);
             });
+            relationService.saveOrUpdateBatch(list);
             return true;
         } catch (Exception e) {
             throw e;
