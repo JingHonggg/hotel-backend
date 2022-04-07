@@ -7,13 +7,17 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.Serializable;
+
 /**
  * @author: lxy
  * @date: 2022-04-03 19:44
  **/
 @TableName("staff")
 @Data
-public class Staff {
+public class Staff implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     @TableId(value = "id",type = IdType.AUTO)
     private Integer id;

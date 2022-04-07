@@ -34,6 +34,7 @@ public class FacilitiesServiceImpl extends ServiceImpl<FacilitiesMapper, Facilit
         map.put("sangna",facilities.get(0));
         map.put("jiuba",facilities.get(1));
         map.put("canting",facilities.get(2));
+        map.put("sangna2",facilities.get(3));
         return map;
     }
 
