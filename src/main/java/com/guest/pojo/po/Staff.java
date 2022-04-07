@@ -41,4 +41,7 @@ public class Staff {
 
     @TableField("image_url")
     private String imageUrl;
+
+    @TableField(exist = false)
+    private String url;
 }
