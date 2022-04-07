@@ -5,6 +5,8 @@ import java.io.Serializable;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
@@ -36,6 +38,7 @@ public class Customer implements Serializable {
     private Long phone;
 
     @ApiModelProperty(value = "客人身份证号码")
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long idNumber;
 
     @ApiModelProperty(value = "创建时间")
