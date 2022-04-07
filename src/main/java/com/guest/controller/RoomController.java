@@ -16,6 +16,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -141,7 +142,7 @@ public class RoomController {
      * @param originPath 原图片的 URL
      * @return
      */
-    private String savePicture(MultipartFile file, String originPath) {
+    public String savePicture(MultipartFile file, String originPath) {
         //原路径为空 证明之前房间没有上传过图片 则保存file到本地
         if (originPath == null) {
             //图片存储目录
