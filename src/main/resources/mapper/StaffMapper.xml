@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.guest.mapper.StaffMapper">
+
+
+    <select id="search" resultType="com.guest.pojo.po.Staff">
+        select *
+        from staff
+        where 1 = 1
+        <if test="param.name != null and param.name != ''">
+            and name = #{param.name}
+        </if>
+        <if test="param.workNumber != null and param.workNumber != ''">
+            and work_number = #{param.workNumber}
+        </if>
+        <if test="param.status != null and param.status != ''">
+            and status = #{param.status}
+        </if> limit #{param.current},#{param.size}
+    </select>
+</mapper>

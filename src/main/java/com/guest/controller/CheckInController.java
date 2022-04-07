@@ -97,6 +97,81 @@ public class CheckInController {
         return Response.success();
     }
 
+    @PostMapping("/addPreCheck")
+    @ApiOperation("新增预定信息")
+    @Transactional(rollbackFor = Exception.class)  //开启事务
+    public Response addPreCheck(@RequestBody CheckInVo checkInVo, HttpServletRequest request) {
+        //鉴权
+        String num = (String) request.getAttribute("num");
+        if (!check(num)) {
+            return new Response(ResponseMsg.ILLEGAL_OPERATION);
+        }
+        CheckIn checkIn = new CheckIn();
+        //获取前端传来的客人信息列表
+        List<Customer> checkInUser = checkInVo.getCheckInUser();
+        //判断入住人数是否大于房间最大容量
+        if (!checkCheckInUserCount(checkInVo, checkInUser)) {
+            return Response.fail("入住人数大于房间最大人数");
+        }
+        //保存入住信息以及客人信息
+        try {
+            //复制checkInVo的属性到checkIn中
+            BeanUtils.copyProperties(checkInVo, checkIn);
+            //保存入住信息
+            saveCheckIn(checkIn, checkInVo.getRoomNumber());
+            //保存客人信息
+            saveCustomer(checkInUser);
+        } catch (Exception e) {
+            return Response.fail("新增预定和客人信息失败," + e.getMessage());
+        }
+        try {
+            //建立入住客人与入住信息的联系
+            CheckInCustomerRelation(checkInUser, checkInVo);
+        } catch (Exception e) {
+            throw e;
+        }
+        //更新房间状态
+        try {
+            QueryWrapper<Room> queryWrapper = new QueryWrapper();
+            queryWrapper.eq("room_number", checkInVo.getRoomNumber());
+            Room room = roomService.getOne(queryWrapper);
+            //更改房间状态为预定
+            room.setRoomStatus(4);
+            roomService.updateById(room);
+        } catch (Exception e) {
+            throw e;
+        }
+        return Response.success();
+    }
+
+    @PostMapping("/cancelPreCheck")
+    public Response cancelPreCheck(@RequestBody CheckInVo checkInVo) {
+        //判断并更新房间状态
+        QueryWrapper<Room> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("room_number", checkInVo.getRoomNumber());
+        //查询数据库中该房间的信息
+        Room room = roomService.getOne(queryWrapper);
+        room.setRoomStatus(1);
+        //更新房间信息
+        roomService.updateById(room);
+        //入住信息改为离店
+        modifyCheckInStatus(checkInVo.getRoomNumber());
+        return Response.success();
+    }
+
+    @PostMapping("/confirmCheck")
+    public Response confirmCheck(@RequestBody CheckInVo checkInVo){
+        //判断并更新房间状态
+        QueryWrapper<Room> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("room_number", checkInVo.getRoomNumber());
+        //查询数据库中该房间的信息
+        Room room = roomService.getOne(queryWrapper);
+        room.setRoomStatus(3);
+        //更新房间信息
+        roomService.updateById(room);
+        return Response.success();
+    }
+
     @GetMapping("/getCheckIn")
     @ApiOperation("获取入住信息")
     public Response getCheckIn(@RequestParam String roomNumber) {
@@ -138,10 +213,10 @@ public class CheckInController {
             if (checkIn == null)
                 return false;
             List<CheckCustomerRelation> list = new ArrayList<>();
-            relationService.remove(new QueryWrapper<CheckCustomerRelation>().eq("check_in_id",checkIn.getId()));
+            relationService.remove(new QueryWrapper<CheckCustomerRelation>().eq("check_in_id", checkIn.getId()));
             //遍历入住的客人数组 与当前入住信息建立关联
             checkInUser.forEach(item -> {
-            CheckCustomerRelation relation = new CheckCustomerRelation();
+                CheckCustomerRelation relation = new CheckCustomerRelation();
                 //查询数据库中中是否有该客人信息
                 QueryWrapper<Customer> customerQueryWrapper = new QueryWrapper<>();
                 customerQueryWrapper.eq("id_number", item.getIdNumber());
@@ -179,6 +254,7 @@ public class CheckInController {
 
     /**
      * 保存客人信息到数据库
+     *
      * @param checkInUser
      */
     private void saveCustomer(List<Customer> checkInUser) {
@@ -225,5 +301,25 @@ public class CheckInController {
      */
     private Boolean check(String name) {
         return backgroundService.getById(name) != null || frontService.getById(name) != null;
+    }
+
+    private void modifyCheckInStatus(String roomNumber) {
+        try {
+            QueryWrapper<CheckIn> queryWrapper = new QueryWrapper<>();
+            //查询数据库中对应房间号的入住信息
+            queryWrapper
+                    .ne("status", 1) //查询状态为未离店的入住信息
+                    .eq("room_number", roomNumber);
+            CheckIn checkIn = checkInService.getOne(queryWrapper);
+            //若入住信息不为空
+            if (checkIn != null) {
+                //将入住信息状态更改为已离店
+                checkIn.setStatus(true);
+                //更新入住信息
+                checkInService.updateById(checkIn);
+            }
+        } catch (Exception e) {
+            throw e;
+        }
     }
 }
